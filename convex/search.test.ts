@@ -274,10 +274,12 @@ describe('search helpers', () => {
   })
 
   it('excludes soft-deleted exact slug match from lexical fallback (#29)', async () => {
-    const deletedSkill = {
-      ...makeSkillDoc({ id: 'skills:deleted', slug: 'orf', displayName: 'ORF' }),
+    const deletedSkill = makeSkillDoc({
+      id: 'skills:deleted',
+      slug: 'orf',
+      displayName: 'ORF',
       softDeletedAt: 1700000000000,
-    }
+    })
     const ctx = makeLexicalCtx({
       exactSlugSkill: deletedSkill,
       recentSkills: [],
@@ -383,6 +385,7 @@ function makeSkillDoc(params: {
   displayName: string
   moderationFlags?: string[]
   moderationReason?: string
+  softDeletedAt?: number
 }) {
   return {
     ...makePublicSkill(params),
@@ -390,7 +393,7 @@ function makeSkillDoc(params: {
     moderationStatus: 'active',
     moderationFlags: params.moderationFlags ?? [],
     moderationReason: params.moderationReason,
-    softDeletedAt: undefined,
+    softDeletedAt: params.softDeletedAt as number | undefined,
   }
 }
 
