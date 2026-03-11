@@ -9,7 +9,7 @@ import {
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { ActionCtx } from './_generated/server'
-import { httpAction } from './_generated/server'
+import { httpAction } from './functions'
 import { requireApiTokenUser } from './lib/apiTokenAuth'
 import { corsHeaders, mergeHeaders } from './lib/httpHeaders'
 import { publishVersionForUser } from './skills'

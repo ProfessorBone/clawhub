@@ -11,7 +11,7 @@ import {
   internalQuery,
   mutation,
   query,
-} from './_generated/server'
+} from './functions'
 import {
   assertAdmin,
   assertModerator,
@@ -4918,6 +4918,8 @@ export const insertVersion = internalMutation({
       })
       skill = await ctx.db.get(skillId)
       if (skill) {
+        // Digest sync is handled after the version patch below (line ~4222),
+        // which captures the final state including latestVersionId and tags.
         await adjustGlobalPublicCountForSkillChange(ctx, null, skill)
       }
     }

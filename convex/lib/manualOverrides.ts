@@ -72,7 +72,7 @@ export function applyManualOverrideToSkillPatch(params: {
   now: number
 }): SkillModerationPatch {
   if (shouldPreserveExistingLock(params.basePatch)) {
-    return params.basePatch
+    return params.basePatch!
   }
 
   const moderationFlags = legacyFlagsFromVerdict(params.override.verdict)

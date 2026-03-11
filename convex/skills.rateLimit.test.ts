@@ -37,6 +37,15 @@ function buildGlobalStatsQuery(table: string) {
   }
 }
 
+function buildDigestQuery(table: string) {
+  if (table !== 'skillSearchDigest') return null
+  return {
+    withIndex: () => ({
+      unique: async () => null,
+    }),
+  }
+}
+
 function createPublishArgs(overrides?: Partial<Record<string, unknown>>) {
   return {
     userId: 'users:owner',
@@ -84,6 +93,8 @@ describe('skills anti-spam guards', () => {
       query: vi.fn((table: string) => {
         const globalStatsQuery = buildGlobalStatsQuery(table)
         if (globalStatsQuery) return globalStatsQuery
+        const digestQuery = buildDigestQuery(table)
+        if (digestQuery) return digestQuery
         if (table === 'skills') {
           return {
             withIndex: (name: string) => {
@@ -113,6 +124,7 @@ describe('skills anti-spam guards', () => {
         }
         throw new Error(`unexpected table ${table}`)
       }),
+      normalizeId: vi.fn(),
     }
 
     await expect(
@@ -170,6 +182,7 @@ describe('skills anti-spam guards', () => {
         }
         throw new Error(`unexpected table ${table}`)
       }),
+      normalizeId: vi.fn(),
     }
 
     await expect(
@@ -233,6 +246,7 @@ describe('skills anti-spam guards', () => {
         }
         throw new Error(`unexpected table ${table}`)
       }),
+      normalizeId: vi.fn(),
     }
 
     await expect(
@@ -272,6 +286,8 @@ describe('skills anti-spam guards', () => {
       query: vi.fn((table: string) => {
         const globalStatsQuery = buildGlobalStatsQuery(table)
         if (globalStatsQuery) return globalStatsQuery
+        const digestQuery = buildDigestQuery(table)
+        if (digestQuery) return digestQuery
         if (table === 'skillVersions') {
           return {
             withIndex: () => ({
@@ -296,6 +312,8 @@ describe('skills anti-spam guards', () => {
         throw new Error(`unexpected table ${table}`)
       }),
       patch,
+      insert: vi.fn(),
+      normalizeId: vi.fn(),
     }
 
     await approveSkillByHashHandler(
@@ -344,6 +362,8 @@ describe('skills anti-spam guards', () => {
       query: vi.fn((table: string) => {
         const globalStatsQuery = buildGlobalStatsQuery(table)
         if (globalStatsQuery) return globalStatsQuery
+        const digestQuery = buildDigestQuery(table)
+        if (digestQuery) return digestQuery
         if (table === 'skillVersions') {
           return {
             withIndex: () => ({
@@ -368,6 +388,8 @@ describe('skills anti-spam guards', () => {
         throw new Error(`unexpected table ${table}`)
       }),
       patch,
+      insert: vi.fn(),
+      normalizeId: vi.fn(),
     }
 
     await approveSkillByHashHandler(
@@ -414,6 +436,8 @@ describe('skills anti-spam guards', () => {
       query: vi.fn((table: string) => {
         const globalStatsQuery = buildGlobalStatsQuery(table)
         if (globalStatsQuery) return globalStatsQuery
+        const digestQuery = buildDigestQuery(table)
+        if (digestQuery) return digestQuery
         if (table === 'skillVersions') {
           return {
             withIndex: () => ({
@@ -424,6 +448,8 @@ describe('skills anti-spam guards', () => {
         throw new Error(`unexpected table ${table}`)
       }),
       patch,
+      insert: vi.fn(),
+      normalizeId: vi.fn(),
     }
 
     await escalateByVtHandler(
@@ -475,6 +501,8 @@ describe('skills anti-spam guards', () => {
       query: vi.fn((table: string) => {
         const globalStatsQuery = buildGlobalStatsQuery(table)
         if (globalStatsQuery) return globalStatsQuery
+        const digestQuery = buildDigestQuery(table)
+        if (digestQuery) return digestQuery
         if (table === 'skills') {
           return {
             withIndex: (name: string) => {
@@ -490,6 +518,8 @@ describe('skills anti-spam guards', () => {
         throw new Error(`unexpected table ${table}`)
       }),
       patch,
+      insert: vi.fn(),
+      normalizeId: vi.fn(),
     }
 
     const result = await clearOwnerSuspiciousFlagsHandler(

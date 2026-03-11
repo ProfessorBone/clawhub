@@ -16,7 +16,7 @@ const { ensureHandler, list, searchInternal, banUserInternal } = await import('.
 function makeCtx() {
   const patch = vi.fn()
   const get = vi.fn()
-  return { ctx: { db: { patch, get } } as never, patch, get }
+  return { ctx: { db: { patch, get, normalizeId: vi.fn() } } as never, patch, get }
 }
 
 function makeListCtx(users: Array<Record<string, unknown>>) {
@@ -26,7 +26,7 @@ function makeListCtx(users: Array<Record<string, unknown>>) {
   const query = vi.fn(() => ({ order }))
   const get = vi.fn()
   return {
-    ctx: { db: { query, get } } as never,
+    ctx: { db: { query, get, normalizeId: vi.fn() } } as never,
     take,
     collect,
     order,
@@ -73,7 +73,7 @@ function makeBanCtx() {
     },
   }))
 
-  const ctx = { db: { patch, insert, get, query }, runMutation } as never
+  const ctx = { db: { patch, insert, get, query, normalizeId: vi.fn() }, runMutation } as never
   return { ctx, patch, insert, get, runMutation }
 }
 
@@ -550,7 +550,10 @@ describe('users.banUserInternal', () => {
       updatedAt: 1_700_000_000_000,
     })
 
-    expect(insertStatEvent).toHaveBeenCalledWith(ctx, { skillId: 'skills:1', kind: 'uncomment' })
+    expect(insertStatEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      { skillId: 'skills:1', kind: 'uncomment' },
+    )
     expect(insert).toHaveBeenCalledWith(
       'auditLogs',
       expect.objectContaining({

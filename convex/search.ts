@@ -2,12 +2,14 @@ import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
-import { action, internalQuery } from './_generated/server'
+import { action, internalQuery } from './functions'
 import { isSkillHighlighted } from './lib/badges'
 import { generateEmbedding } from './lib/embeddings'
+import type { HydratableSkill } from './lib/public'
 import { toPublicSkill, toPublicSoul, toPublicUser } from './lib/public'
 import { matchesExactTokens, tokenize } from './lib/searchText'
 import { isSkillSuspicious } from './lib/skillSafety'
+import { digestToHydratableSkill } from './lib/skillSearchDigest'
 
 type OwnerInfo = { handle: string | null; owner: ReturnType<typeof toPublicUser> | null }
 
@@ -130,6 +132,7 @@ export const searchSkills: ReturnType<typeof action> = action({
     const maxCandidate = Math.min(Math.max(limit * 10, 200), 256)
     let candidateLimit = Math.min(Math.max(limit * 3, 50), 256)
     let hydrated: SkillSearchEntry[] = []
+    const seenEmbeddingIds = new Set<Id<'skillEmbeddings'>>()
     let scoreById = new Map<Id<'skillEmbeddings'>, number>()
     let exactMatches: SkillSearchEntry[] = []
 
@@ -140,10 +143,21 @@ export const searchSkills: ReturnType<typeof action> = action({
         filter: (q) => q.or(q.eq('visibility', 'latest'), q.eq('visibility', 'latest-approved')),
       })
 
-      hydrated = (await ctx.runQuery(internal.search.hydrateResults, {
-        embeddingIds: results.map((result) => result._id),
-        nonSuspiciousOnly: args.nonSuspiciousOnly,
-      })) as SkillSearchEntry[]
+      // Only hydrate embedding IDs we haven't seen yet (incremental).
+      // Track all attempted IDs, not just successful hydrations, to avoid
+      // re-hydrating filtered-out entries (soft-deleted, suspicious) each loop.
+      const newEmbeddingIds = results
+        .map((r) => r._id)
+        .filter((id) => !seenEmbeddingIds.has(id))
+      for (const id of newEmbeddingIds) seenEmbeddingIds.add(id)
+
+      if (newEmbeddingIds.length > 0) {
+        const newEntries = (await ctx.runQuery(internal.search.hydrateResults, {
+          embeddingIds: newEmbeddingIds,
+          nonSuspiciousOnly: args.nonSuspiciousOnly,
+        })) as SkillSearchEntry[]
+        hydrated = [...hydrated, ...newEntries]
+      }
 
       scoreById = new Map<Id<'skillEmbeddings'>, number>(
         results.map((result) => [result._id, result._score]),
@@ -225,7 +239,14 @@ export const hydrateResults = internalQuery({
           ? lookup.skillId
           : await ctx.db.get(embeddingId).then((e) => e?.skillId)
         if (!skillId) return null
-        const skill = await ctx.db.get(skillId)
+        // Use lightweight digest (~800 bytes) instead of full skill doc (~3-5KB).
+        const digest = await ctx.db
+          .query('skillSearchDigest')
+          .withIndex('by_skill', (q) => q.eq('skillId', skillId))
+          .unique()
+        const skill: HydratableSkill | null = digest
+          ? digestToHydratableSkill(digest)
+          : await ctx.db.get(skillId)
         if (!skill || skill.softDeletedAt) return null
         if (args.nonSuspiciousOnly && isSkillSuspicious(skill)) return null
         const ownerInfo = await getOwnerInfo(skill.ownerUserId)

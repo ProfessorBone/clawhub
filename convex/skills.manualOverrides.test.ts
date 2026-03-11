@@ -74,7 +74,7 @@ function makeCtx(params: {
 
   return {
     ctx: {
-      db: { get, patch, insert, query },
+      db: { get, patch, insert, query, normalizeId: vi.fn() },
     } as never,
     patch,
     insert,

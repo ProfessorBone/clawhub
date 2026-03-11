@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc } from './_generated/dataModel'
 import type { ActionCtx } from './_generated/server'
-import { internalAction, internalMutation, internalQuery } from './_generated/server'
+import { internalAction, internalMutation, internalQuery } from './functions'
 import {
   countPublicSkillsForGlobalStats,
   setGlobalPublicSkillsCount,
