@@ -37,7 +37,12 @@ import {
   isPublicSkillDoc,
   readGlobalPublicSkillsCount,
 } from './lib/globalStats'
-import { buildTrendingLeaderboard } from './lib/leaderboards'
+import {
+  buildNonSuspiciousTrendingLeaderboard,
+  buildTrendingLeaderboard,
+  TRENDING_LEADERBOARD_KIND,
+  TRENDING_NON_SUSPICIOUS_LEADERBOARD_KIND,
+} from './lib/leaderboards'
 import {
   applyManualOverrideToSkillPatch,
   isManualOverrideReason,
@@ -2252,6 +2257,7 @@ export const listPublicPage = query({
   args: {
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
+    nonSuspiciousOnly: v.optional(v.boolean()),
     sort: v.optional(
       v.union(
         v.literal('updated'),
@@ -2275,18 +2281,24 @@ export const listPublicPage = query({
         .paginate({ cursor: args.cursor ?? null, numItems: limit })
 
       const skills = page.filter((skill) => !skill.softDeletedAt)
-      const items = await buildPublicSkillEntries(ctx, skills)
+      const items = await buildPublicSkillEntries(
+        ctx,
+        filterPublicSkillPage(skills, { nonSuspiciousOnly: args.nonSuspiciousOnly }),
+      )
 
       return { items, nextCursor: isDone ? null : continueCursor }
     }
 
     if (sort === 'trending') {
-      const entries = await getTrendingEntries(ctx, limit)
+      const entries = await getTrendingEntries(ctx, limit, {
+        nonSuspiciousOnly: args.nonSuspiciousOnly,
+      })
       const skills: Doc<'skills'>[] = []
 
       for (const entry of entries) {
         const skill = await ctx.db.get(entry.skillId)
         if (!skill || skill.softDeletedAt) continue
+        if (args.nonSuspiciousOnly && isSkillSuspicious(skill)) continue
         skills.push(skill)
         if (skills.length >= limit) break
       }
@@ -2302,7 +2314,10 @@ export const listPublicPage = query({
       .order('desc')
       .paginate({ cursor: args.cursor ?? null, numItems: limit })
 
-    const filtered = page.filter((skill) => !skill.softDeletedAt)
+    const filtered = filterPublicSkillPage(
+      page.filter((skill) => !skill.softDeletedAt),
+      { nonSuspiciousOnly: args.nonSuspiciousOnly },
+    )
     const items = await buildPublicSkillEntries(ctx, filtered)
     return { items, nextCursor: isDone ? null : continueCursor }
   },
@@ -2446,12 +2461,19 @@ function sortToIndex(
   }
 }
 
-async function getTrendingEntries(ctx: QueryCtx, limit: number) {
+async function getTrendingEntries(
+  ctx: QueryCtx,
+  limit: number,
+  args?: { nonSuspiciousOnly?: boolean },
+) {
+  const kind = args?.nonSuspiciousOnly
+    ? TRENDING_NON_SUSPICIOUS_LEADERBOARD_KIND
+    : TRENDING_LEADERBOARD_KIND
   // Use the pre-computed leaderboard from the hourly cron job.
   // Avoid Date.now() here to keep the query deterministic and cacheable.
   const latest = await ctx.db
     .query('skillLeaderboards')
-    .withIndex('by_kind', (q) => q.eq('kind', 'trending'))
+    .withIndex('by_kind', (q) => q.eq('kind', kind))
     .order('desc')
     .take(1)
 
@@ -2460,10 +2482,15 @@ async function getTrendingEntries(ctx: QueryCtx, limit: number) {
   }
 
   // No leaderboard exists yet (cold start) - compute on the fly
-  const fallback = await buildTrendingLeaderboard(ctx, {
-    limit,
-    now: Date.now(),
-  })
+  const fallback = args?.nonSuspiciousOnly
+    ? await buildNonSuspiciousTrendingLeaderboard(ctx, {
+        limit,
+        now: Date.now(),
+      })
+    : await buildTrendingLeaderboard(ctx, {
+        limit,
+        now: Date.now(),
+      })
   return fallback.items
 }
 

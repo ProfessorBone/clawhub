@@ -74,6 +74,8 @@ Query params:
 - `q` (required): query string
 - `limit` (optional): integer
 - `highlightedOnly` (optional): `true` to filter to highlighted skills
+- `nonSuspiciousOnly` (optional): `true` to hide suspicious (`flagged.suspicious`) skills
+- `nonSuspicious` (optional): legacy alias for `nonSuspiciousOnly`
 
 Response:
 
@@ -90,12 +92,16 @@ Notes:
 Query params:
 
 - `limit` (optional): integer (1–200)
-- `cursor` (optional): pagination cursor (only for `sort=updated`)
+- `cursor` (optional): pagination cursor for any non-`trending` sort
 - `sort` (optional): `updated` (default), `downloads`, `stars` (alias: `rating`), `installsCurrent` (alias: `installs`), `installsAllTime`, `trending`
+- `nonSuspiciousOnly` (optional): `true` to hide suspicious (`flagged.suspicious`) skills
+- `nonSuspicious` (optional): legacy alias for `nonSuspiciousOnly`
 
 Notes:
 
 - `trending` ranks by installs in the last 7 days (telemetry-based).
+- When `nonSuspiciousOnly=true`, cursor-based sorts may return fewer than `limit` items on a page because suspicious skills are filtered after page retrieval.
+- Use `nextCursor` to continue pagination when present. A short page does not by itself mean end-of-results.
 
 Response:
 
@@ -144,6 +150,26 @@ Query params:
 ### `GET /api/v1/skills/{slug}/versions/{version}`
 
 Returns version metadata + files list.
+
+- `version.security` includes normalized scan verification status and scanner details
+  (VirusTotal + LLM), when available.
+
+### `GET /api/v1/skills/{slug}/scan`
+
+Returns security scan verification details for a skill version.
+
+Query params:
+
+- `version` (optional): specific version string.
+- `tag` (optional): resolve a tagged version (for example `latest`).
+
+Notes:
+
+- If neither `version` nor `tag` is provided, uses the latest version.
+- Includes normalized verification status plus scanner-specific details.
+- `security.hasScanResult` is `true` only when a scanner produced a definitive verdict (`clean`, `suspicious`, or `malicious`).
+- `moderation` is a current skill-level moderation snapshot derived from the latest version.
+- When querying a historical version, check `moderation.matchesRequestedVersion` and `moderation.sourceVersion` before treating `moderation` and `security` as the same version context.
 
 ### `GET /api/v1/skills/{slug}/file`
 
