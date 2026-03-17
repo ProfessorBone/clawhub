@@ -265,7 +265,7 @@ export async function soulsGetRouterV1Handler(ctx: ActionCtx, request: Request) 
     if (!blob) return text('File missing in storage', 410, rate.headers)
     const textContent = await blob.text()
 
-    void ctx.runMutation(api.soulDownloads.increment, { soulId: soul._id })
+    void ctx.runMutation(internal.soulDownloads.incrementInternal, { soulId: soul._id })
     return safeTextFileResponse({
       textContent,
       path: file.path,

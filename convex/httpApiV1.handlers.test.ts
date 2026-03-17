@@ -1,5 +1,6 @@
 /* @vitest-environment node */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { internal } from './_generated/api'
 
 vi.mock('./lib/apiTokenAuth', () => ({
   requireApiTokenUser: vi.fn(),
@@ -634,6 +635,9 @@ describe('httpApiV1 handlers', () => {
     expect(response.status).toBe(200)
     expect(await response.text()).toBe('hello')
     expect(storageGet).toHaveBeenCalledWith('_storage:1')
+    expect(runMutation).toHaveBeenCalledWith(internal.soulDownloads.incrementInternal, {
+      soulId: 'souls:1',
+    })
   })
 
   it('lists skills supports sort aliases', async () => {

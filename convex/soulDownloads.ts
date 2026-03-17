@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
-import { mutation } from './functions'
+import { internalMutation } from './functions'
 
-export const increment = mutation({
+export const incrementInternal = internalMutation({
   args: { soulId: v.id('souls') },
   handler: async (ctx, args) => {
     const soul = await ctx.db.get(args.soulId)

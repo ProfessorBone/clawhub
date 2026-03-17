@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { api, internal } from './_generated/api'
-import { httpAction, internalMutation, mutation } from './functions'
+import { httpAction, internalMutation } from './functions'
 import { getOptionalApiTokenUserId } from './lib/apiTokenAuth'
 import { applyRateLimit, getClientIp } from './lib/httpRateLimit'
 import { corsHeaders, mergeHeaders } from './lib/httpHeaders'
@@ -143,19 +143,6 @@ export const downloadZip = httpAction(async (ctx, request) => {
       corsHeaders(),
     ),
   })
-})
-
-export const increment = mutation({
-  args: { skillId: v.id('skills') },
-  handler: async (ctx, args) => {
-    // Skip db.get to avoid adding the skill doc to the read set.
-    // The calling HTTP action already validated the skill exists,
-    // and the stat processor handles deleted skills gracefully.
-    await insertStatEvent(ctx, {
-      skillId: args.skillId,
-      kind: 'download',
-    })
-  },
 })
 
 export const recordDownloadInternal = internalMutation({
