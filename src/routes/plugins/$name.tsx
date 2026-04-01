@@ -380,22 +380,27 @@ function PluginDetailRoute() {
                   <dd className="plugin-kv-value">{verification.summary}</dd>
                 </div>
               ) : null}
-              {verification.sourceRepo ? (
-                <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Source</dt>
-                  <dd className="plugin-kv-value">
-                    <a
-                      href={verification.sourceRepo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="plugin-external-link"
-                    >
-                      {verification.sourceRepo.replace(/^https?:\/\//, "")}
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </a>
-                  </dd>
-                </div>
-              ) : null}
+              {verification.sourceRepo ? (() => {
+                const raw = verification.sourceRepo;
+                const href = /^https?:\/\//.test(raw) ? raw : `https://github.com/${raw}`;
+                const display = href.replace(/^https?:\/\//, "");
+                return (
+                  <div className="plugin-kv-row">
+                    <dt className="plugin-kv-label">Source</dt>
+                    <dd className="plugin-kv-value">
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="plugin-external-link"
+                      >
+                        {display}
+                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                      </a>
+                    </dd>
+                  </div>
+                );
+              })() : null}
               {verification.sourceCommit ? (
                 <div className="plugin-kv-row">
                   <dt className="plugin-kv-label">Commit</dt>
